@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
@@ -35,7 +36,7 @@ func NewRecipeHandler(c *gin.Context) {
 		return
 	}
 	recipe.ID = xid.New().String()
-	recipe.Name = "Pruebas de Nombre"
+	// recipe.Name = "Pruebas de Nombre"
 	recipe.PublishedAt = time.Now()
 	recipes = append(recipes, recipe)
 	c.JSON(http.StatusOK, recipe)
@@ -46,6 +47,7 @@ func main() {
 	router.POST("/recipes", NewRecipeHandler)
 	router.GET("/recipes", ListRecipesHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
+	router.DELETE("/recipes/:id", DeleteRecipeHandler)
 	router.Run()
 }
 
@@ -55,13 +57,14 @@ func ListRecipesHandler(c *gin.Context) {
 
 func UpdateRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
+	log.Printf("**** id: %s\n\n", id)
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error()})
 		return
 	}
-	index := 1
+	index := -1
 	for i := 0; i < len(recipes); i++ {
 		if recipes[i].ID == id {
 			index = i
@@ -72,6 +75,32 @@ func UpdateRecipeHandler(c *gin.Context) {
 			"error": "Recipe not Found"})
 		return
 	}
+	log.Println("******************* recipe")
+	log.Println(recipe)
+	log.Println("******************* Slide de recipe")
+	log.Println(recipes[index])
 	recipes[index] = recipe
+	// recipe.ID = id
+	recipe.PublishedAt = time.Now()
 	c.JSON(http.StatusOK, recipe)
+}
+
+func DeleteRecipeHandler(c *gin.Context) {
+	id := c.Param("id")
+	var nombre string
+	index := -1
+	for i := 0; i < len(recipes); i++ {
+		if recipes[i].ID == id {
+			index = i
+			nombre = recipes[i].Name
+		}
+	}
+	if index == -1 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Recipe not Found"})
+		return
+	}
+	recipes = append(recipes[:index], recipes[index+1:]...)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Recipe: " + nombre + " has been deleted"})
 }
